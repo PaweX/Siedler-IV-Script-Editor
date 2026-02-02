@@ -13,6 +13,11 @@
 #include "Localization.h"
 
 
+// Global handle to our created window (used later for reowning)
+HWND g_hOurWindow = nullptr;
+// Global handle to S4Editor main window
+HWND g_hS4EditorMainWindow = nullptr;
+
 HWND hwndButton = nullptr;
 HWND hwndEdit = nullptr;
 HWND hwndCombobox = nullptr;
@@ -82,6 +87,7 @@ void InitObjArrayFromLocalization()
 	}
 }
 
+
 int writeNewLuaString(const char* newLuaString)
 {
 	if (luaScript != nullptr)
@@ -146,6 +152,8 @@ void selectObjectID(unsigned short objectID)
 		*currentSelectedItem = DIALOG_OVERWRITE_ITEM;
 	}
 	*objectIDSpitPlant = objectID;
+	
+	SetFocus(g_hS4EditorMainWindow); //force focus change so S4 editor notices the change
 }	
 void DoSuspendThread(DWORD targetProcessId, DWORD targetThreadId)
 {
@@ -423,7 +431,7 @@ LRESULT CALLBACK DLLWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 		break;
 	case WM_CLOSE:
 		//minimize in corner
-		SetWindowPos(hwnd, nullptr, 0, INFINITE, 250, 0, NULL);
+		ShowWindow(hwnd, SW_MINIMIZE);
 		break;
 	case WM_SIZE:
 	{
@@ -484,6 +492,82 @@ BOOL RegisterDLLWindowClass(const wchar_t* szClassName, HINSTANCE inj_hModule)
 }
 
 
+
+// Helper: Finds the most likely main/top-level window of the current process
+// Returns the largest visible top-level window with a caption (title bar)
+HWND FindMainWindowOfCurrentProcess()
+{
+	// If we have already found it, return cached handle
+	if (g_hS4EditorMainWindow != nullptr)
+	{
+		return g_hS4EditorMainWindow;
+	}
+
+	struct Candidate
+	{
+		HWND hwnd = nullptr;
+		long area = 0;
+		bool hasCaption = false;
+		bool hasThickFrame = false;
+	};
+
+	Candidate best;
+
+	EnumWindows([](HWND hWnd, LPARAM lParam) -> BOOL
+				{
+					DWORD pid = 0;
+					GetWindowThreadProcessId(hWnd, &pid);
+					if (pid != GetCurrentProcessId()) return TRUE;
+
+					// VERY IMPORTANT: skip our own floating window!
+					if (hWnd == g_hOurWindow) return TRUE;
+
+					if (!IsWindowVisible(hWnd)) return TRUE;
+
+					LONG style = GetWindowLong(hWnd, GWL_STYLE);
+					LONG exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+
+					if ((style & WS_CHILD) != 0) return TRUE;
+					if ((style & WS_POPUP) != 0 && (style & WS_CAPTION) == 0) return TRUE;
+
+					bool isToolWindow = (exStyle & WS_EX_TOOLWINDOW) != 0;
+					if (isToolWindow) return TRUE;  // skip floating tool palettes etc.
+
+					bool hasCaption = (style & WS_CAPTION) != 0;
+					bool hasThickFrame = (style & WS_THICKFRAME) != 0;
+
+					RECT rc;
+					if (!GetWindowRect(hWnd, &rc)) return TRUE;
+
+					long w = rc.right - rc.left;
+					long h = rc.bottom - rc.top;
+
+					// Raise minimum size - S4 editor main window is usually quite large
+					if (w < 800 || h < 600) return TRUE;
+
+					long thisArea = w * h;
+
+					auto *best = reinterpret_cast<Candidate *>(lParam);
+
+					bool better = (thisArea > best->area) ||
+						(thisArea == best->area && hasThickFrame && !best->hasThickFrame) ||
+						(thisArea == best->area && hasCaption && !best->hasCaption);
+
+					if (better)
+					{
+						best->hwnd = hWnd;
+						best->area = thisArea;
+						best->hasCaption = hasCaption;
+						best->hasThickFrame = hasThickFrame;
+					}
+
+					return TRUE;
+				}, reinterpret_cast<LPARAM>(&best));
+
+	return best.hwnd;
+}
+
+
 HWND initWindow(HINSTANCE hInstance)
 {
 	//NEED LIBRARY FOR RICHEDIT
@@ -505,7 +589,7 @@ HWND initWindow(HINSTANCE hInstance)
 			NULL
 		);
 
-
+		ShowWindow(hwnd, SW_SHOWMINIMIZED);
 	}
 	return hwnd;
 }
