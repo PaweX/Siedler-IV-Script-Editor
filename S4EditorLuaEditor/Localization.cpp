@@ -57,5 +57,17 @@ void LocSetLanguage(LANGID newLang)
 // -----------------------------------------------------------------------------
 LANGID GetPreferredLanguage()
 {
-    return MAKELANGID(GetUserDefaultUILanguage(), SUBLANG_DEFAULT);
+    LANGID sys = GetUserDefaultUILanguage();
+
+    switch (PRIMARYLANGID(sys))
+    {
+    case LANG_POLISH:
+        return MAKELANGID(LANG_POLISH, SUBLANG_DEFAULT);
+
+    case LANG_GERMAN:
+        return MAKELANGID(LANG_GERMAN, SUBLANG_DEFAULT);
+
+    default:
+        return MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT);   // fallback to default language
+    }
 }
