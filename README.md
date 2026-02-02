@@ -2,6 +2,7 @@
 Originally developed by [MuffinMario](https://github.com/MuffinMario)
 
 **Available languages:** English, German, Polish
+The language is selected automatically based on the system language.
 
 ## English
 
