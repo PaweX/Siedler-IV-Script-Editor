@@ -9,7 +9,8 @@
 #include <CommCtrl.h>
 #include <TlHelp32.h>
 #include "S4EditorLuaEditor.h"
-
+#include "resource.h"
+#include "Localization.h"
 
 
 HWND hwndButton = nullptr;
@@ -19,51 +20,8 @@ HWND hwndCombobox = nullptr;
 HMENU hmenuBar = nullptr;
 HMENU hmenu = nullptr;
 // no std::map<int,std::wstring>, we need index of vector for comboBox index
-const std::vector<std::pair<unsigned short, std::wstring>> objectsArr{
-	{ 254, L"<Kein Objekt>" }, //Dunkle Spuckpflanze
-	{ 19, L"Tropische Dattelpalme" },
-	{ 20, L"Tropische Dattelpalme 2" },
-	{ 21, L"Dunkelblättrige tropische Palme" },
-	{ 22, L"Dunkelblättrige tropische Palme 2" },
-	{ 42, L"Verwildertes Trojanisches Pferd" },
-	{ 94, L"Kleiner dunkler Fels" },
-	{ 98, L"Kleiner rötlicher Fels" },
-	{ 97, L"Mittelgroßer Rötlicher Fels" },
-	{ 96, L"Großer rötlicher Fels" },
-	{ 95, L"Rötlicher Fels" },
-	{ 102, L"Kleiner dunkler Stein" },
-	{ 115, L"Morbus' übriger Statuenboden" },
-	{ 117, L"Trojanisches Pferd im Bau" },
-	{ 118, L"Trojanisches Pferd" },
-	{ 119, L"Portal" },
-	{ 123, L"Planierstöcke" },
-	{ 151, L"Dunkler Schneemann" },
-	{ 178, L"Halber kleiner Rinderhaufen" },
-	{ 194, L"1x Kohlevorkommen Schild" },
-	{ 195, L"2x Kohlevorkommen Schild" },
-	{ 196, L"3x Kohlevorkommen Schild" },
-	{ 197, L"1x Goldvorkommen  Schild" },
-	{ 198, L"2x Goldvorkommen  Schild" },
-	{ 199, L"3x Goldvorkommen  Schild" },
-	{ 200, L"1x Eisenvorkommen  Schild" },
-	{ 201, L"2x Eisenvorkommen  Schild" },
-	{ 202, L"3x Eisenvorkommen  Schild" },
-	{ 203, L"1x Steinvorkommen  Schild" },
-	{ 204, L"2x Steinvorkommen  Schild" },
-	{ 205, L"3x Steinvorkommen  Schild" },
-	{ 206, L"1x Schwefelvorkommen  Schild" },
-	{ 207, L"2x Schwefelvorkommen  Schild" },
-	{ 208, L"3x Schwefelvorkommen  Schild" },
-	{ 216, L"*in dunkles Land umwandeln* (Effekt im Spiel)" },
-	{ 223, L"Schloss" },
-	{ 224, L"Turm mit Feuer auf der Spitze" },
-	{ 225, L"Koloss von Rhodos" },
-	{ 226, L"Mosaik Statue" },
-	{ 227, L"Mosaik Statue im Bau" },
-	{ 228, L"MA MA Hütte" },
-	{ 230, L"Tropischer Busch" },
-	{ 232, L"P-Runenpyramide" }
-};
+std::vector<std::pair<unsigned short, std::wstring>> objectsArr;
+
 const int PADDING_WIDTH = 10, PADDING_HEIGHT = 10;
 int buttonWidth = 100, buttonHeight = 25;
 int comboboxWidth = 200, comboboxHeight = 25;
@@ -97,6 +55,32 @@ else if (code < 0)
 cout << "Adress of script not initalized!" << endl;
 }
 */
+
+void InitObjArrayFromLocalization()
+{
+	objectsArr.clear();
+
+	const unsigned short objectIds[] = {
+		254, 19, 20, 21, 22, 42, 94, 98, 97, 96, 95,
+		102, 115, 117, 118, 119, 123, 151, 178,
+		194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,
+		216,223,224,225,226,227,228,230,232
+	};
+
+	for (unsigned short id : objectIds)
+	{
+		UINT stringId = IDS_OBJ_BASE + id;
+		std::wstring name = LocGet(stringId);
+
+		// Fallback in case translation is missing
+		if (name.empty())
+		{
+			name = L"??? ID: " + std::to_wstring(id);
+		}
+
+		objectsArr.emplace_back(id, std::move(name));
+	}
+}
 
 int writeNewLuaString(const char* newLuaString)
 {
@@ -277,22 +261,25 @@ LRESULT CALLBACK DLLWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 	case WM_CREATE:
 		//std::cout << "create!" << std::endl;
 	{
+		LocSetLanguage(GetPreferredLanguage()); // Only once at window creation
+		InitObjArrayFromLocalization();
+
 		hmenuBar = CreateMenu();
 		hmenu = CreateMenu();
 
-		AppendMenuW(hmenu, MF_STRING, IDC_MO_CHECK_NEW_WORLD, L"&Neue-Welt Texturen");
-		AppendMenuW(hmenu, MF_STRING, IDC_MO_CHECK_MAP_PREVIEW, L"&Verstecke Mapvorschau");
+		AppendMenuW(hmenu, MF_STRING, IDC_MO_CHECK_NEW_WORLD, LocGet_CStr(IDS_MENU_NEW_WORLD));
+		AppendMenuW(hmenu, MF_STRING, IDC_MO_CHECK_MAP_PREVIEW, LocGet_CStr(IDS_MENU_HIDE_PREVIEW));
 
 		//On Editor Start: Default Properties
 		CheckMenuItem(hmenu, IDC_MO_CHECK_NEW_WORLD, MF_UNCHECKED);
 		CheckMenuItem(hmenu, IDC_MO_CHECK_MAP_PREVIEW, MF_UNCHECKED);
 
-		AppendMenuW(hmenuBar, MF_POPUP, (UINT_PTR)hmenu, L"Map-&Optionen");
+		AppendMenuW(hmenuBar, MF_POPUP, (UINT_PTR)hmenu, LocGet_CStr(IDS_MENU_MAP_OPTIONS));
 		SetMenu(hwnd, hmenuBar);
 
 		hwndButton = CreateWindow(
 			L"BUTTON",  // Predefined class; Unicode assumed 
-			L"Script setzen",      // Button text 
+			LocGet_CStr(IDS_BTN_SET_SCRIPT),      // Button text 
 			WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
 			windowWidth - PADDING_WIDTH - buttonWidth,         // x position 
 			windowHeight - PADDING_HEIGHT - buttonHeight - PADDING_HEIGHT - comboboxHeight,         // y position 
@@ -363,15 +350,15 @@ LRESULT CALLBACK DLLWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 			int code = writeNewLuaString(buf);
 			if (code < 0)
 			{
-				MessageBox(hwnd, L"Interner Fehler. Auf Lua-Adresse kann nicht geschrieben werden. Wenn der Fehler bei Neustart nicht behoben wird, kontaktiere mich auf https://s4.muffinmar.io/", L"Fehler!", MB_OK);
+				MessageBox(hwnd, LocGet_CStr(IDS_MSG_ERROR_SAVE_LUA), LocGet_CStr(IDS_MSG_TITLE_ERROR), MB_OK);
 			}
 			else if (code > 0)
 			{
-				MessageBox(hwnd, L"Das Script darf nur 65534 Zeichen enthalten", L"Fehler!", MB_OK);
+				MessageBox(hwnd, LocGet_CStr(IDS_MSG_SCRIPT_TOO_LONG), LocGet_CStr(IDS_MSG_TITLE_ERROR), MB_OK);
 			}
 			else
 			{
-				MessageBox(hwnd, L"Script erfolgreich ersetzt! \r\nVergesse nicht die Map zu speichern!", L"Siedler IV Lua Editor", MB_OK);
+				MessageBox(hwnd, LocGet_CStr(IDS_MSG_SUCCESS_SAVE_LUA), LocGet_CStr(IDS_WINDOW_TITLE_LUA_EDIT), MB_OK);
 			}
 		}
 		else if (lwp == IDC_SCRIPT_EDIT_BOX)
@@ -509,7 +496,7 @@ HWND initWindow(HINSTANCE hInstance)
 		hwnd = CreateWindowEx(
 			0,
 			className,
-			L"Siedler IV Lua Editor",
+			LocGet_CStr(IDS_WINDOW_TITLE_LUA_EDIT),
 			WS_OVERLAPPEDWINDOW,
 			CW_USEDEFAULT, CW_USEDEFAULT, windowWidth, windowHeight + 25, //+25 becuase bar above
 			NULL,
