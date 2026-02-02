@@ -1,4 +1,5 @@
 # Siedler IV Script Editor
+Originally developed by [MuffinMario](https://github.com/MuffinMario)
 
 ## English
 
