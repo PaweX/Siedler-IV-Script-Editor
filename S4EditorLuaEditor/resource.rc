@@ -83,7 +83,7 @@ IDS_MSG_ERROR_SAVE_LUA          "B³¹d wewnêtrzny. Nie mo¿na zapisaæ do adresu Lu
 IDS_MSG_EDITOR_CHANGED          "Skrypt zosta³ zmieniony w edytorze.\r\nCzy chcesz za³adowaæ skrypt z edytora? (Twój obecny skrypt zostanie wtedy zast¹piony)"
 IDS_MSG_DLL_NOT_FOUND           "Plik MapGenerator2.dll nie zosta³ znaleziony w katalogu edytora.\r\nProgram nadal dzia³a, ale nie bêdziesz móg³ tworzyæ losowo generowanych map, dopóki biblioteka DLL nie znajdzie siê w tym katalogu."
 IDS_MSG_TITLE_DLL_NOT_FOUND     "DLL nie znaleziono!"
-IDS_WINDOW_TITLE_LUA_EDIT       "Edytor Lua – Siedler IV"
+IDS_WINDOW_TITLE_LUA_EDIT       "Edytor Lua – Settlers IV"
 IDS_BTN_SET_SCRIPT              "Ustaw skrypt"
 IDS_MENU_MAP_OPTIONS            "Opcje &mapy"
 IDS_MENU_NEW_WORLD              "Tekstury &Nowego Œwiata"
