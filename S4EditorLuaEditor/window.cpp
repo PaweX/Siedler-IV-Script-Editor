@@ -5,6 +5,7 @@
 #include <bitset>
 #include <map>
 #include <string>
+#include <algorithm>
 #include <vector>
 #include <CommCtrl.h>
 #include <TlHelp32.h>
@@ -497,74 +498,53 @@ BOOL RegisterDLLWindowClass(const wchar_t* szClassName, HINSTANCE inj_hModule)
 // Returns the largest visible top-level window with a caption (title bar)
 HWND FindMainWindowOfCurrentProcess()
 {
-	// If we have already found it, return cached handle
 	if (g_hS4EditorMainWindow != nullptr)
-	{
 		return g_hS4EditorMainWindow;
-	}
 
-	struct Candidate
-	{
-		HWND hwnd = nullptr;
-		long area = 0;
-		bool hasCaption = false;
-		bool hasThickFrame = false;
-	};
-
-	Candidate best;
+	HWND result = nullptr;
 
 	EnumWindows([](HWND hWnd, LPARAM lParam) -> BOOL
 				{
+					// Check if window belongs to this process
 					DWORD pid = 0;
 					GetWindowThreadProcessId(hWnd, &pid);
-					if (pid != GetCurrentProcessId()) return TRUE;
+					if (pid != GetCurrentProcessId())
+						return TRUE;
 
-					// VERY IMPORTANT: skip our own floating window!
-					if (hWnd == g_hOurWindow) return TRUE;
+					// Skip our own tool window
+					if (hWnd == g_hOurWindow)
+						return TRUE;
 
-					if (!IsWindowVisible(hWnd)) return TRUE;
+					// Must be visible
+					if (!IsWindowVisible(hWnd))
+						return TRUE;
 
-					LONG style = GetWindowLong(hWnd, GWL_STYLE);
-					LONG exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+					// Read window title
+					wchar_t title[256];
+					GetWindowTextW(hWnd, title, 256);
 
-					if ((style & WS_CHILD) != 0) return TRUE;
-					if ((style & WS_POPUP) != 0 && (style & WS_CAPTION) == 0) return TRUE;
+					// Convert to lowercase
+					std::wstring t = title;
+					std::transform(t.begin(), t.end(), t.begin(), ::towlower);
 
-					bool isToolWindow = (exStyle & WS_EX_TOOLWINDOW) != 0;
-					if (isToolWindow) return TRUE;  // skip floating tool palettes etc.
+					// Accept only windows containing "settlers" or "siedler"
+					bool isEditor =
+						(t.find(L"settlers") != std::wstring::npos) ||
+						(t.find(L"siedler") != std::wstring::npos);
 
-					bool hasCaption = (style & WS_CAPTION) != 0;
-					bool hasThickFrame = (style & WS_THICKFRAME) != 0;
+					if (!isEditor)
+						return TRUE;
 
-					RECT rc;
-					if (!GetWindowRect(hWnd, &rc)) return TRUE;
+					// This is the correct window
+					HWND *out = reinterpret_cast<HWND *>(lParam);
+					*out = hWnd;
 
-					long w = rc.right - rc.left;
-					long h = rc.bottom - rc.top;
+					// Stop enumeration
+					return FALSE;
 
-					// Raise minimum size - S4 editor main window is usually quite large
-					if (w < 800 || h < 600) return TRUE;
+				}, reinterpret_cast<LPARAM>(&result));
 
-					long thisArea = w * h;
-
-					auto *best = reinterpret_cast<Candidate *>(lParam);
-
-					bool better = (thisArea > best->area) ||
-						(thisArea == best->area && hasThickFrame && !best->hasThickFrame) ||
-						(thisArea == best->area && hasCaption && !best->hasCaption);
-
-					if (better)
-					{
-						best->hwnd = hWnd;
-						best->area = thisArea;
-						best->hasCaption = hasCaption;
-						best->hasThickFrame = hasThickFrame;
-					}
-
-					return TRUE;
-				}, reinterpret_cast<LPARAM>(&best));
-
-	return best.hwnd;
+	return result;
 }
 
 
