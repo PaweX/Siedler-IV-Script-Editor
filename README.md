@@ -5,7 +5,7 @@ Originally developed by [MuffinMario](https://github.com/MuffinMario)
 
 The language is selected automatically based on the system language.
 
-<img width="2560" height="1390" alt="obraz" src="https://github.com/user-attachments/assets/b72eda6e-32bf-4376-9aea-2d9673fc72cb" />
+<img width="2560" height="1390" alt="obraz" src="https://github.com/user-attachments/assets/8bd1cf5d-2cb8-43d5-b0a3-3d2b16877d80" />
 
 ## English
 
