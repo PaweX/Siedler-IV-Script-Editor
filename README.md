@@ -5,6 +5,8 @@ Originally developed by [MuffinMario](https://github.com/MuffinMario)
 
 The language is selected automatically based on the system language.
 
+<img width="2560" height="1390" alt="obraz" src="https://github.com/user-attachments/assets/b72eda6e-32bf-4376-9aea-2d9673fc72cb" />
+
 ## English
 
 A small window that starts together with S4Editor.exe.  
